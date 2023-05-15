@@ -16,6 +16,7 @@ var PARA;
     PARA["Oak"] = "oak";
     PARA["Mangata"] = "mangata";
     PARA["Generic"] = "generic";
+    PARA["LocalV"] = "local_v";
 })(PARA || (PARA = {}));
 exports.PARA = PARA;
 // imports
@@ -24,6 +25,7 @@ const astar_1 = __importDefault(require("./astar"));
 const bifrost_1 = __importDefault(require("./bifrost"));
 const efinity_1 = __importDefault(require("./efinity"));
 const equilibrium_1 = __importDefault(require("./equilibrium"));
+const local_v_1 = __importDefault(require("./local-v"));
 const mangata_1 = __importDefault(require("./mangata"));
 const moonbeam_1 = __importDefault(require("./moonbeam"));
 const oak_1 = __importDefault(require("./oak"));
@@ -33,7 +35,7 @@ function whichPara(chain) {
         return PARA.Statemint;
     if (/moonbase|moonriver|moonbeam/.test(chain))
         return PARA.Moonbeam;
-    if (/efinity|rocfinity/.test(chain))
+    if (/efinity|matrix/.test(chain))
         return PARA.Efinity;
     if (/acala|karura|mandala/.test(chain))
         return PARA.Acala;
@@ -47,6 +49,8 @@ function whichPara(chain) {
         return PARA.Oak;
     if (/mangata/.test(chain))
         return PARA.Mangata;
+    if (/local-v/.test(chain))
+        return PARA.LocalV;
     return PARA.Generic;
 }
 exports.whichPara = whichPara;
@@ -86,6 +90,10 @@ const mangataDecorators = Object.keys(mangata_1.default).reduce((memo, fn) => {
     memo[fn] = mangata_1.default[fn];
     return memo;
 }, Object.create({}));
+const localVDecorators = Object.keys(local_v_1.default).reduce((memo, fn) => {
+    memo[fn] = local_v_1.default[fn];
+    return memo;
+}, Object.create({}));
 const decorators = {
     moonbeam: moonbeamDecorators,
     statemint: statemintDecorators,
@@ -96,6 +104,7 @@ const decorators = {
     equilibrium: eqDecorators,
     oak: oakDecorators,
     mangata: mangataDecorators,
+    local_v: localVDecorators,
     generic: {},
 };
 function decorate(para, fns) {

@@ -195,10 +195,10 @@ function addStaking(specPath, node) {
             const runtimeConfig = getRuntimeConfig(chainSpec);
             if (!(runtimeConfig === null || runtimeConfig === void 0 ? void 0 : runtimeConfig.staking))
                 return;
-            const { sr_stash, sr_account } = node.accounts;
+            const { sr_stash } = node.accounts;
             runtimeConfig.staking.stakers.push([
                 sr_stash.address,
-                sr_account.address,
+                sr_stash.address,
                 stakingBond || 1000000000000,
                 "Validator",
             ]);
@@ -644,43 +644,49 @@ function runCommandWithChainSpec(chainSpecFullPath, commandWithArgs, workingDire
 exports.runCommandWithChainSpec = runCommandWithChainSpec;
 function customizePlainRelayChain(specPath, networkSpec) {
     return __awaiter(this, void 0, void 0, function* () {
-        // Relay-chain spec customization logic
-        const plainRelayChainSpec = readAndParseChainSpec(specPath);
-        const keyType = specHaveSessionsKeys(plainRelayChainSpec)
-            ? "session"
-            : "aura";
-        // Clear all defaults
-        clearAuthorities(specPath);
-        // add balances for nodes
-        yield addBalances(specPath, networkSpec.relaychain.nodes);
-        // add authorities for nodes
-        const validatorKeys = [];
-        for (const node of networkSpec.relaychain.nodes) {
-            if (node.validator) {
-                validatorKeys.push(node.accounts.sr_stash.address);
-                if (keyType === "session") {
-                    const key = getNodeKey(node);
-                    yield addAuthority(specPath, node, key);
+        try {
+            // Relay-chain spec customization logic
+            const plainRelayChainSpec = readAndParseChainSpec(specPath);
+            const keyType = specHaveSessionsKeys(plainRelayChainSpec)
+                ? "session"
+                : "aura";
+            // make genesis overrides first.
+            if (networkSpec.relaychain.genesis) {
+                yield changeGenesisConfig(specPath, networkSpec.relaychain.genesis);
+            }
+            // Clear all defaults
+            clearAuthorities(specPath);
+            // add balances for nodes
+            yield addBalances(specPath, networkSpec.relaychain.nodes);
+            // add authorities for nodes
+            const validatorKeys = [];
+            for (const node of networkSpec.relaychain.nodes) {
+                if (node.validator) {
+                    validatorKeys.push(node.accounts.sr_stash.address);
+                    if (keyType === "session") {
+                        const key = getNodeKey(node);
+                        yield addAuthority(specPath, node, key);
+                    }
+                    else {
+                        yield addAuraAuthority(specPath, node.name, node.accounts);
+                        yield addGrandpaAuthority(specPath, node.name, node.accounts);
+                    }
+                    yield addStaking(specPath, node);
                 }
-                else {
-                    yield addAuraAuthority(specPath, node.name, node.accounts);
-                    yield addGrandpaAuthority(specPath, node.name, node.accounts);
-                }
-                yield addStaking(specPath, node);
+            }
+            if (networkSpec.relaychain.randomNominatorsCount) {
+                yield generateNominators(specPath, networkSpec.relaychain.randomNominatorsCount, networkSpec.relaychain.maxNominations, validatorKeys);
+            }
+            if (networkSpec.hrmp_channels) {
+                yield addHrmpChannelsToGenesis(specPath, networkSpec.hrmp_channels);
+            }
+            // modify the plain chain spec with any custom commands
+            for (const cmd of networkSpec.relaychain.chainSpecModifierCommands) {
+                yield runCommandWithChainSpec(specPath, cmd, networkSpec.configBasePath);
             }
         }
-        if (networkSpec.relaychain.randomNominatorsCount) {
-            yield generateNominators(specPath, networkSpec.relaychain.randomNominatorsCount, networkSpec.relaychain.maxNominations, validatorKeys);
-        }
-        if (networkSpec.relaychain.genesis) {
-            yield changeGenesisConfig(specPath, networkSpec.relaychain.genesis);
-        }
-        if (networkSpec.hrmp_channels) {
-            yield addHrmpChannelsToGenesis(specPath, networkSpec.hrmp_channels);
-        }
-        // modify the plain chain spec with any custom commands
-        for (const cmd of networkSpec.relaychain.chainSpecModifierCommands) {
-            yield runCommandWithChainSpec(specPath, cmd, networkSpec.configBasePath);
+        catch (err) {
+            console.log(`\n ${utils_1.decorators.red("Unexpected error: ")} \t ${utils_1.decorators.bright(err)}\n`);
         }
     });
 }

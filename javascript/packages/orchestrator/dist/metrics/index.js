@@ -8,14 +8,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getProcessStartTimeKey = exports.getMetricName = exports.getHistogramBuckets = exports.fetchMetrics = void 0;
 const debug = require("debug")("zombie::metrics");
 const utils_1 = require("@zombienet/utils");
-const axios_1 = __importDefault(require("axios"));
+const constants_1 = require("../constants");
 const parseLine_1 = require("./parseLine");
 // Map well know metric keys used to regex
 var metricKeysMapping;
@@ -29,8 +26,18 @@ function fetchMetrics(metricUri) {
         let metrics = {}; // empty by default
         try {
             debug(`fetching: ${metricUri}`);
-            const response = yield axios_1.default.get(metricUri, { timeout: 2000 });
-            metrics = _extractMetrics(response.data);
+            const fetchResult = yield fetch(metricUri, {
+                signal: (0, utils_1.TimeoutAbortController)(2).signal,
+                method: "GET",
+                headers: {
+                    accept: "application/json",
+                },
+            });
+            if (!fetchResult.ok) {
+                throw new Error(`Error - status: ${fetchResult.status}`);
+            }
+            const response = yield fetchResult.text();
+            metrics = _extractMetrics(response);
         }
         catch (err) {
             debug(`ERR: ${err}`);
@@ -43,14 +50,24 @@ exports.fetchMetrics = fetchMetrics;
 function getHistogramBuckets(metricUri, metricName) {
     return __awaiter(this, void 0, void 0, function* () {
         debug(`fetching: ${metricUri}`);
-        const response = yield axios_1.default.get(metricUri, { timeout: 2000 });
+        const fetchResult = yield fetch(metricUri, {
+            signal: (0, utils_1.TimeoutAbortController)(2).signal,
+            method: "GET",
+            headers: {
+                accept: "application/json",
+            },
+        });
+        if (!fetchResult.ok) {
+            throw new Error(`Error - status: ${fetchResult.status}`);
+        }
+        const response = yield fetchResult.text();
         let previousBucketValue = 0;
         const buckets = {};
         const resolvedMetricName = metricName.includes("_bucket")
             ? metricName
             : `${metricName}_bucket`;
         const parsedMetricInput = (0, parseLine_1.parseLine)(resolvedMetricName);
-        for (const line of response.data.split("\n")) {
+        for (const line of response.split("\n")) {
             if (line.length === 0 || line[0] === "#")
                 continue; // comments and empty lines
             const parsedLine = (0, parseLine_1.parseLine)(line);
@@ -99,8 +116,8 @@ function getMetricName(metricName) {
     return metricNameTouse;
 }
 exports.getMetricName = getMetricName;
-function getProcessStartTimeKey() {
-    return "substrate_process_start_time_seconds";
+function getProcessStartTimeKey(prefix = constants_1.DEFAULT_PROMETHEUS_PREFIX) {
+    return `${prefix}_process_start_time_seconds`;
 }
 exports.getProcessStartTimeKey = getProcessStartTimeKey;
 function _extractMetrics(text) {

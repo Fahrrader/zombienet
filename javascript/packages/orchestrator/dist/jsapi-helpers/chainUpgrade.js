@@ -8,14 +8,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateRuntimeCode = exports.chainCustomSectionUpgrade = exports.chainUpgradeFromLocalFile = exports.chainUpgradeFromUrl = void 0;
 const api_1 = require("@polkadot/api");
 const util_crypto_1 = require("@polkadot/util-crypto");
-const axios_1 = __importDefault(require("axios"));
 const fs_1 = require("fs");
 const napi_maybe_compressed_blob_1 = require("napi-maybe-compressed-blob");
 const constants_1 = require("../constants");
@@ -25,11 +21,9 @@ function chainUpgradeFromUrl(api, wasmFileUrl) {
         // The filename of the runtime/PVF we want to upgrade to. Usually a file
         // with `.compact.compressed.wasm` extension.
         console.log(`upgrading chain with file from url: ${wasmFileUrl}`);
-        const file = yield (0, axios_1.default)({
-            url: wasmFileUrl,
-            responseType: "arraybuffer",
-        });
-        const buff = Buffer.from(file.data);
+        const fetchResponse = yield fetch(wasmFileUrl);
+        const file = yield fetchResponse.arrayBuffer();
+        const buff = Buffer.from(file);
         const hash = (0, util_crypto_1.blake2AsHex)(buff);
         yield performChainUpgrade(api, buff.toString("hex"));
         return hash;

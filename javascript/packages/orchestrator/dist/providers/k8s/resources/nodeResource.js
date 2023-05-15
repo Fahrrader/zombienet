@@ -143,19 +143,27 @@ class NodeResource {
             return containers;
         });
     }
+    computeZombieRoleLabel() {
+        const { validator, zombieRole } = this.nodeSetupConfig;
+        if (zombieRole) {
+            return zombieRole;
+        }
+        return validator ? "authority" : "full-node";
+    }
     generatePodSpec(initContainers, containers, volumes) {
-        const { name, validator } = this.nodeSetupConfig;
+        const { name, zombieRole } = this.nodeSetupConfig;
+        const zombieRoleLabel = this.computeZombieRoleLabel();
+        const restartPolicy = zombieRole === types_1.ZombieRole.Temp ? "Never" : "Always";
         return {
             apiVersion: "v1",
             kind: "Pod",
             metadata: {
                 name,
                 labels: {
-                    "zombie-role": validator ? "authority" : "full-node",
+                    "zombie-role": zombieRoleLabel,
                     app: "zombienet",
                     "app.kubernetes.io/name": this.namespace,
                     "app.kubernetes.io/instance": name,
-                    "zombie-ns": this.namespace,
                 },
                 annotations: {
                     "prometheus.io/scrape": "true",
@@ -166,7 +174,7 @@ class NodeResource {
                 hostname: name,
                 containers,
                 initContainers,
-                restartPolicy: "Never",
+                restartPolicy,
                 volumes,
                 securityContext: {
                     fsGroup: 1000,

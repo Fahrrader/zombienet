@@ -47,7 +47,7 @@ class TempoResource {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const templateConfigPath = path_1.default.resolve(__dirname, `./configs/tempo.yaml`);
-                yield promises_1.default.writeFile(`${this.configPath}/tempo.yaml`, templateConfigPath);
+                yield promises_1.default.copyFile(templateConfigPath, `${this.configPath}/tempo.yaml`);
             }
             catch (_a) {
                 throw new Error("Error generating config for tempo resource");

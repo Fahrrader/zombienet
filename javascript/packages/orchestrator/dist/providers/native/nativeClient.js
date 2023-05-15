@@ -234,16 +234,20 @@ class NativeClient extends client_1.Client {
                 }, {}),
             };
             let logTable = new utils_1.CreateLogTable({
-                colWidths: [20, 100],
+                colWidths: [25, 100],
             });
-            logTable.pushToPrint([
+            const logs = [
                 [utils_1.decorators.cyan("Pod"), utils_1.decorators.green(name)],
                 [utils_1.decorators.cyan("Status"), utils_1.decorators.green("Launching")],
                 [
                     utils_1.decorators.cyan("Command"),
                     utils_1.decorators.white(podDef.spec.command.join(" ")),
                 ],
-            ]);
+            ];
+            if (dbSnapshot) {
+                logs.push([utils_1.decorators.cyan("DB Snapshot"), utils_1.decorators.green(dbSnapshot)]);
+            }
+            logTable.pushToPrint(logs);
             if (dbSnapshot) {
                 // we need to get the snapshot from a public access
                 // and extract to /data

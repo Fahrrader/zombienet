@@ -109,6 +109,8 @@ function generateNetworkSpec(config) {
                 chain: config.relaychain.chain || constants_1.DEFAULT_CHAIN,
                 overrides: globalOverrides,
                 defaultResources: config.relaychain.default_resources,
+                defaultPrometheusPrefix: config.relaychain.default_prometheus_prefix ||
+                    constants_1.DEFAULT_PROMETHEUS_PREFIX,
             },
             parachains: [],
         };
@@ -179,6 +181,10 @@ function generateNetworkSpec(config) {
                     overrides: nodeGroup.overrides,
                     resources: nodeGroup.resources || networkSpec.relaychain.defaultResources,
                     db_snapshot: nodeGroup.db_snapshot,
+                    prometheus_prefix: nodeGroup.prometheus_prefix ||
+                        networkSpec.relaychain.defaultPrometheusPrefix,
+                    substrate_cli_args_version: nodeGroup.substrate_cli_args_version ||
+                        networkSpec.relaychain.default_substrate_cli_args_version,
                 };
                 const nodeSetup = yield getNodeFromConfig(networkSpec, node, relayChainBootnodes, globalOverrides, nodeGroup.name);
                 networkSpec.relaychain.nodes.push(nodeSetup);
@@ -206,7 +212,7 @@ function generateNetworkSpec(config) {
                 if (parachain.collators)
                     collatorConfigs.push(...parachain.collators);
                 for (const collatorConfig of collatorConfigs) {
-                    collators.push(yield getCollatorNodeFromConfig(networkSpec, collatorConfig, parachain.id, paraChainName, para, bootnodes, isCumulusBased));
+                    collators.push(yield getCollatorNodeFromConfig(networkSpec, collatorConfig, parachain, paraChainName, para, bootnodes, isCumulusBased));
                 }
                 for (const collatorGroup of parachain.collator_groups || []) {
                     for (let i = 0; i < collatorGroup.count; i++) {
@@ -223,7 +229,10 @@ function generateNetworkSpec(config) {
                             resources: collatorGroup.resources ||
                                 networkSpec.relaychain.defaultResources,
                         };
-                        collators.push(yield getCollatorNodeFromConfig(networkSpec, node, parachain.id, paraChainName, para, bootnodes, isCumulusBased));
+                        if (collatorGroup.substrate_cli_args_version)
+                            node.substrate_cli_args_version =
+                                collatorGroup.substrate_cli_args_version;
+                        collators.push(yield getCollatorNodeFromConfig(networkSpec, node, parachain, paraChainName, para, bootnodes, isCumulusBased));
                     }
                 }
                 // use the first collator for state/wasm generation
@@ -333,12 +342,7 @@ function generateBootnodeSpec(config) {
         const provider = config.settings.provider;
         const ports = yield getPorts(provider, {});
         const externalPorts = yield getExternalPorts(provider, ports, {});
-        const nodeSetup = Object.assign(Object.assign({ name: "bootnode", key: "0000000000000000000000000000000000000000000000000000000000000001", command: config.relaychain.defaultCommand || constants_1.DEFAULT_COMMAND, image: config.relaychain.defaultImage || constants_1.DEFAULT_IMAGE, chain: config.relaychain.chain, validator: false, invulnerable: false, args: [
-                "--ws-external",
-                "--rpc-external",
-                "--listen-addr",
-                "/ip4/0.0.0.0/tcp/30333/ws",
-            ], env: [], bootnodes: [], telemetryUrl: "", prometheus: true, overrides: [], zombieRole: types_1.ZombieRole.BootNode, imagePullPolicy: config.settings.image_pull_policy || "Always" }, ports), { externalPorts });
+        const nodeSetup = Object.assign(Object.assign({ name: "bootnode", key: "0000000000000000000000000000000000000000000000000000000000000001", command: config.relaychain.defaultCommand || constants_1.DEFAULT_COMMAND, image: config.relaychain.defaultImage || constants_1.DEFAULT_IMAGE, chain: config.relaychain.chain, validator: false, invulnerable: false, args: ["--rpc-external", "--listen-addr", "/ip4/0.0.0.0/tcp/30333/ws"], env: [], bootnodes: [], telemetryUrl: "", prometheus: true, overrides: [], zombieRole: types_1.ZombieRole.BootNode, imagePullPolicy: config.settings.image_pull_policy || "Always" }, ports), { externalPorts });
         return nodeSetup;
     });
 }
@@ -370,7 +374,7 @@ function getLocalOverridePath(configBasePath, definedLocalPath) {
         return local_real_path;
     });
 }
-function getCollatorNodeFromConfig(networkSpec, collatorConfig, para_id, chain, // relay-chain
+function getCollatorNodeFromConfig(networkSpec, collatorConfig, parachain, chain, // relay-chain
 para, bootnodes, // parachain bootnodes
 cumulusBased) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -391,7 +395,8 @@ cumulusBased) {
         const externalPorts = yield getExternalPorts(provider, ports, collatorConfig);
         const node = Object.assign(Object.assign({ name: collatorName, key: (0, utils_1.getSha256)(collatorName), accounts: accountsForNode, validator: collatorConfig.validator !== false ? true : false, invulnerable: collatorConfig.invulnerable, balance: collatorConfig.balance, image: collatorConfig.image || constants_1.DEFAULT_COLLATOR_IMAGE, command: collatorBinary, commandWithArgs: collatorConfig.command_with_args, args: args || [], chain,
             bootnodes,
-            env, telemetryUrl: "", prometheus: prometheusExternal(networkSpec), overrides: [], zombieRole: cumulusBased ? types_1.ZombieRole.CumulusCollator : types_1.ZombieRole.Collator, parachainId: para_id, dbSnapshot: collatorConfig.db_snapshot, imagePullPolicy: networkSpec.settings.image_pull_policy || "Always" }, ports), { externalPorts, p2pCertHash: collatorConfig.p2p_cert_hash });
+            env, telemetryUrl: "", prometheus: prometheusExternal(networkSpec), overrides: [], zombieRole: cumulusBased ? types_1.ZombieRole.CumulusCollator : types_1.ZombieRole.Collator, parachainId: parachain.id, dbSnapshot: collatorConfig.db_snapshot, imagePullPolicy: networkSpec.settings.image_pull_policy || "Always" }, ports), { externalPorts, p2pCertHash: collatorConfig.p2p_cert_hash, prometheusPrefix: parachain.prometheus_prefix ||
+                networkSpec.relaychain.defaultPrometheusPrefix });
         return node;
     });
 }
@@ -428,7 +433,7 @@ function getNodeFromConfig(networkSpec, node, relayChainBootnodes, globalOverrid
         // build node Setup
         const nodeSetup = Object.assign(Object.assign({ name: nodeName, key: (0, utils_1.getSha256)(nodeName), accounts: accountsForNode, command: command || constants_1.DEFAULT_COMMAND, commandWithArgs: node.command_with_args, image: image || constants_1.DEFAULT_IMAGE, chain: networkSpec.relaychain.chain, validator: isValidator, invulnerable: node.invulnerable, balance: node.balance, args: uniqueArgs, env, bootnodes: relayChainBootnodes, telemetryUrl: ((_a = networkSpec.settings) === null || _a === void 0 ? void 0 : _a.telemetry)
                 ? "ws://telemetry:8000/submit 0"
-                : "", telemetry: ((_b = networkSpec.settings) === null || _b === void 0 ? void 0 : _b.telemetry) ? true : false, prometheus: prometheusExternal(networkSpec), overrides: [...globalOverrides, ...nodeOverrides], addToBootnodes: node.add_to_bootnodes ? true : false, resources: node.resources || networkSpec.relaychain.defaultResources, zombieRole: types_1.ZombieRole.Node, imagePullPolicy: networkSpec.settings.image_pull_policy || "Always" }, ports), { externalPorts, p2pCertHash: node.p2p_cert_hash });
+                : "", telemetry: ((_b = networkSpec.settings) === null || _b === void 0 ? void 0 : _b.telemetry) ? true : false, prometheus: prometheusExternal(networkSpec), overrides: [...globalOverrides, ...nodeOverrides], addToBootnodes: node.add_to_bootnodes ? true : false, resources: node.resources || networkSpec.relaychain.defaultResources, zombieRole: types_1.ZombieRole.Node, imagePullPolicy: networkSpec.settings.image_pull_policy || "Always" }, ports), { externalPorts, p2pCertHash: node.p2p_cert_hash, prometheusPrefix: node.prometheus_prefix || networkSpec.relaychain.defaultPrometheusPrefix });
         if (group)
             nodeSetup.group = group;
         const dbSnapshot = node.db_snapshot
@@ -436,6 +441,11 @@ function getNodeFromConfig(networkSpec, node, relayChainBootnodes, globalOverrid
             : networkSpec.relaychain.defaultDbSnapshot || null;
         if (dbSnapshot)
             nodeSetup.dbSnapshot = dbSnapshot;
+        if (node.substrate_cli_args_version ||
+            networkSpec.default_substrate_cli_args_version)
+            nodeSetup.substrateCliArgsVersion =
+                node.substrate_cli_args_version ||
+                    networkSpec.default_substrate_cli_args_version;
         return nodeSetup;
     });
 }

@@ -27,6 +27,7 @@ const instrospector_1 = require("./network-helpers/instrospector");
 const tracing_collator_1 = require("./network-helpers/tracing-collator");
 const verifier_1 = require("./network-helpers/verifier");
 const spawner_1 = require("./spawner");
+const substrateCliArgsHelper_1 = require("./substrateCliArgsHelper");
 const debug = require("debug")("zombie");
 // Hide some warning messages that are coming from Polkadot JS API.
 // TODO: Make configurable.
@@ -44,6 +45,11 @@ function start(credentials, launchConfig, options) {
         try {
             // Parse and build Network definition
             const networkSpec = yield (0, configGenerator_1.generateNetworkSpec)(launchConfig);
+            // IFF there are network references in cmds we need to switch to concurrency 1
+            if (constants_1.TOKEN_PLACEHOLDER.test(JSON.stringify(networkSpec))) {
+                debug("Network definition use network references, switching concurrency to 1");
+                opts.spawnConcurrency = 1;
+            }
             debug(JSON.stringify(networkSpec, null, 4));
             const { initClient, setupChainSpec, getChainSpecRaw } = (0, providers_1.getProvider)(networkSpec.settings.provider);
             // global timeout to spin the network
@@ -86,6 +92,9 @@ function start(credentials, launchConfig, options) {
             if (networkSpec.settings.node_spawn_timeout)
                 client.timeout = networkSpec.settings.node_spawn_timeout;
             network = new network_1.Network(client, namespace, tmpDir.path);
+            if (options === null || options === void 0 ? void 0 : options.setGlobalNetwork) {
+                options.setGlobalNetwork(network);
+            }
             const zombieTable = new utils_1.CreateLogTable({
                 head: [
                     utils_1.decorators.green("🧟 Zombienet 🧟"),
@@ -128,6 +137,9 @@ function start(credentials, launchConfig, options) {
             debug(`Creating static resources (bootnode and backchannel services)`);
             yield client.staticSetup(networkSpec.settings);
             yield client.createPodMonitor("pod-monitor.yaml", chainName);
+            // Set substrate client argument version, needed from breaking change.
+            // see https://github.com/paritytech/substrate/pull/13384
+            yield (0, substrateCliArgsHelper_1.setSubstrateCliArgsVersion)(networkSpec, client);
             // create or copy relay chain spec
             yield setupChainSpec(namespace, networkSpec.relaychain, chainName, chainSpecFullPathPlain);
             // check if we have the chain spec file
@@ -258,6 +270,8 @@ function start(credentials, launchConfig, options) {
                 if (!parachain.addToGenesis && parachain.registerPara) {
                     // register parachain on a running network
                     const basePath = `${tmpDir.path}/${parachain.name}`;
+                    // ensure node is up.
+                    yield (0, verifier_1.nodeChecker)(network.relay[0]);
                     yield (0, jsapi_helpers_1.registerParachain)({
                         id: parachain.id,
                         wasmPath: `${basePath}/${constants_1.GENESIS_WASM_FILENAME}`,

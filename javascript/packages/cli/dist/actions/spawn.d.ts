@@ -10,4 +10,4 @@ import { Network } from "@zombienet/orchestrator";
  *
  * @returns Network
  */
-export declare function spawn(configFile: string, credsFile: string | undefined, cmdOpts: any, program: any): Promise<Network>;
+export declare function spawn(configFile: string, credsFile: string | undefined, cmdOpts: any, program: any, setGlobalNetwork: (network: Network) => void): Promise<void>;

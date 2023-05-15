@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateImageUrl = exports.getFilePathNameExt = exports.getRandom = exports.getLokiUrl = exports.convertExponentials = exports.filterConsole = exports.isValidHttpUrl = exports.convertBytes = exports.addMinutes = exports.getSha256 = exports.generateNamespace = exports.retry = exports.sleep = void 0;
+exports.validateImageUrl = exports.getFilePathNameExt = exports.getRandom = exports.TimeoutAbortController = exports.getLokiUrl = exports.convertExponentials = exports.filterConsole = exports.isValidHttpUrl = exports.convertBytes = exports.addMinutes = exports.getSha256 = exports.generateNamespace = exports.retry = exports.sleep = void 0;
 const crypto_1 = require("crypto");
 const util_1 = require("util");
 const constants_1 = require("./constants");
@@ -106,6 +106,12 @@ function getLokiUrl(namespace, podName, from, to) {
     return loki_url;
 }
 exports.getLokiUrl = getLokiUrl;
+const TimeoutAbortController = (time) => {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), time * 1000);
+    return controller;
+};
+exports.TimeoutAbortController = TimeoutAbortController;
 function getRandom(arr, n) {
     let len = arr.length;
     const result = new Array(n), taken = new Array(len);

@@ -8,7 +8,8 @@ declare enum PARA {
     Equilibrium = "equilibrium",
     Oak = "oak",
     Mangata = "mangata",
-    Generic = "generic"
+    Generic = "generic",
+    LocalV = "local_v"
 }
 declare function whichPara(chain: string): PARA;
 declare function decorate(para: PARA, fns: Function[]): Function[];

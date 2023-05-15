@@ -9,11 +9,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyNodes = void 0;
+exports.verifyNodes = exports.nodeChecker = void 0;
 const utils_1 = require("@zombienet/utils");
 const metrics_1 = require("../metrics");
 const paras_decorators_1 = require("../paras-decorators");
 const debug = require("debug")("zombie::helper::verifier");
+const nodeChecker = (node) => __awaiter(void 0, void 0, void 0, function* () {
+    const metricToQuery = node.para
+        ? (0, paras_decorators_1.decorate)(node.para, [metrics_1.getProcessStartTimeKey])[0](node.prometheusPrefix)
+        : (0, metrics_1.getProcessStartTimeKey)(node.prometheusPrefix);
+    debug(`\t checking node: ${node.name} with prometheusUri: ${node.prometheusUri} - key: ${metricToQuery}`);
+    const ready = yield node.getMetric(metricToQuery, "isAtLeast", 1, 60 * 5);
+    debug(`\t ${node.name} ready ${ready}`);
+    return ready;
+});
+exports.nodeChecker = nodeChecker;
 // Verify that the nodes of the supplied network are up/running.
 // To verify that the node is running we use the startProcessTime from
 // prometheus server exposed in each node.
@@ -27,17 +37,8 @@ const debug = require("debug")("zombie::helper::verifier");
 function verifyNodes(network) {
     return __awaiter(this, void 0, void 0, function* () {
         // wait until all the node's are up
-        const nodeChecker = (node) => __awaiter(this, void 0, void 0, function* () {
-            const metricToQuery = node.para
-                ? (0, paras_decorators_1.decorate)(node.para, [metrics_1.getProcessStartTimeKey])[0]()
-                : (0, metrics_1.getProcessStartTimeKey)();
-            debug(`\t checking node: ${node.name} with prometheusUri: ${node.prometheusUri} - key: ${metricToQuery}`);
-            const ready = yield node.getMetric(metricToQuery, "isAtLeast", 1, 60 * 5);
-            debug(`\t ${node.name} ready ${ready}`);
-            return ready;
-        });
         const nodeCheckGenerators = Object.values(network.nodesByName).map((node) => {
-            return () => nodeChecker(node);
+            return () => (0, exports.nodeChecker)(node);
         });
         const nodesOk = yield (0, utils_1.series)(nodeCheckGenerators, 10);
         if (!nodesOk.every(Boolean))

@@ -8,13 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NetworkNode = void 0;
 const api_1 = require("@polkadot/api");
-const axios_1 = __importDefault(require("axios"));
 const minimatch_1 = require("minimatch");
 const constants_1 = require("./constants");
 const metrics_1 = require("./metrics");
@@ -23,11 +19,12 @@ const utils_1 = require("@zombienet/utils");
 const jsapi_helpers_1 = require("./jsapi-helpers");
 const debug = require("debug")("zombie::network-node");
 class NetworkNode {
-    constructor(name, wsUri, prometheusUri, multiAddress, userDefinedTypes = null) {
+    constructor(name, wsUri, prometheusUri, multiAddress, userDefinedTypes = null, prometheusPrefix = "substrate") {
         this.name = name;
         this.wsUri = wsUri;
         this.prometheusUri = prometheusUri;
         this.multiAddress = multiAddress;
+        this.prometheusPrefix = prometheusPrefix;
         if (userDefinedTypes)
             this.userDefinedTypes = userDefinedTypes;
     }
@@ -61,7 +58,8 @@ class NetworkNode {
         return __awaiter(this, void 0, void 0, function* () {
             const client = (0, client_1.getClient)();
             const args = client.getPauseArgs(this.name);
-            const result = yield client.runCommand(args, { scoped: true });
+            const scoped = client.providerName === "kubernetes";
+            const result = yield client.runCommand(args, { scoped });
             return result.exitCode === 0;
         });
     }
@@ -69,7 +67,8 @@ class NetworkNode {
         return __awaiter(this, void 0, void 0, function* () {
             const client = (0, client_1.getClient)();
             const args = client.getResumeArgs(this.name);
-            const result = yield client.runCommand(args, { scoped: true });
+            const scoped = client.providerName === "kubernetes";
+            const result = yield client.runCommand(args, { scoped });
             return result.exitCode === 0;
         });
     }
@@ -304,6 +303,8 @@ class NetworkNode {
     findPattern(pattern, isGlob, timeout = constants_1.DEFAULT_INDIVIDUAL_TEST_TIMEOUT) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
+                let lastLogLineCheckedTimestamp;
+                let lastLogLineCheckedIndex;
                 const re = isGlob ? (0, minimatch_1.makeRe)(pattern) : new RegExp(pattern, "ig");
                 if (!re)
                     throw new Error(`Invalid glob pattern: ${pattern} `);
@@ -312,7 +313,7 @@ class NetworkNode {
                 const getValue = () => __awaiter(this, void 0, void 0, function* () {
                     let done = false;
                     while (!done) {
-                        const dedupedLogs = this._dedupLogs(logs.split("\n"), client.providerName === "native");
+                        const dedupedLogs = this._dedupLogs(logs.split("\n"), client.providerName === "native", lastLogLineCheckedTimestamp, lastLogLineCheckedIndex);
                         const index = dedupedLogs.findIndex((line) => {
                             if (client.providerName !== "native") {
                                 // remove the extra timestamp
@@ -322,9 +323,9 @@ class NetworkNode {
                         });
                         if (index >= 0) {
                             done = true;
-                            this.lastLogLineCheckedTimestamp = dedupedLogs[index];
-                            this.lastLogLineCheckedIndex = index;
-                            debug(this.lastLogLineCheckedTimestamp.split(" ").slice(1).join(" "));
+                            lastLogLineCheckedTimestamp = dedupedLogs[index];
+                            lastLogLineCheckedIndex = index;
+                            debug(lastLogLineCheckedTimestamp.split(" ").slice(1).join(" "));
                         }
                         else {
                             yield new Promise((resolve) => setTimeout(resolve, 1000));
@@ -373,7 +374,10 @@ class NetworkNode {
     getSpansByTraceId(traceId, collatorUrl) {
         return __awaiter(this, void 0, void 0, function* () {
             const url = `${collatorUrl}/api/traces/${traceId}`;
-            const response = yield axios_1.default.get(url, { timeout: 2000 });
+            const fetchResult = yield fetch(url, {
+                signal: (0, utils_1.TimeoutAbortController)(2).signal,
+            });
+            const response = yield fetchResult.json();
             // filter batches
             const batches = response.data.batches.filter((batch) => {
                 const serviceNameAttr = batch.resource.attributes.find((attr) => {
@@ -396,13 +400,13 @@ class NetworkNode {
             return spanNames;
         });
     }
-    // prevent to seach in the same log line twice.
-    _dedupLogs(logs, useIndex = false) {
-        if (!this.lastLogLineCheckedTimestamp)
+    // prevent to search in the same log line twice.
+    _dedupLogs(logs, useIndex = false, lastLogLineCheckedTimestamp, lastLogLineCheckedIndex) {
+        if (!lastLogLineCheckedTimestamp)
             return logs;
         if (useIndex)
-            return logs.slice(this.lastLogLineCheckedIndex);
-        const lastLineTs = this.lastLogLineCheckedTimestamp.split(" ")[0];
+            return logs.slice(lastLogLineCheckedIndex);
+        const lastLineTs = lastLogLineCheckedTimestamp.split(" ")[0];
         const index = logs.findIndex((logLine) => {
             const thisLineTs = logLine.split(" ")[0];
             return thisLineTs > lastLineTs;

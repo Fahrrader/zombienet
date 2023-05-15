@@ -12,6 +12,7 @@ export declare class PodmanClient extends Client {
     localMagicFilepath: string;
     remoteDir: string;
     dataDir: string;
+    isTearingDown: boolean;
     constructor(configPath: string, namespace: string, tmpDir: string);
     validateAccess(): Promise<boolean>;
     createNamespace(): Promise<void>;
@@ -32,7 +33,7 @@ export declare class PodmanClient extends Client {
     getNodeInfo(podName: string, port?: number, externalView?: boolean): Promise<[string, number]>;
     runCommand(args: string[], opts?: RunCommandOptions): Promise<RunCommandResponse>;
     runScript(podName: string, scriptPath: string, args?: string[]): Promise<RunCommandResponse>;
-    spawnFromDef(podDef: any, filesToCopy: fileMap[] | undefined, keystore: string, chainSpecId: string, dbSnapshot?: string): Promise<void>;
+    spawnFromDef(podDef: any, filesToCopy?: fileMap[], keystore?: string, chainSpecId?: string, dbSnapshot?: string): Promise<void>;
     copyFileFromPod(identifier: string, podFilePath: string, localFilePath: string): Promise<void>;
     putLocalMagicFile(): Promise<void>;
     createResource(resourseDef: any, scoped: boolean, waitReady: boolean): Promise<void>;

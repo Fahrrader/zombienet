@@ -41,7 +41,9 @@ const child_process_1 = require("child_process");
 const execa_1 = __importDefault(require("execa"));
 const path_1 = __importStar(require("path"));
 const constants_1 = require("../../constants");
+const types_1 = require("../../types");
 const client_1 = require("../client");
+const dynResourceDefinition_1 = require("./dynResourceDefinition");
 const fs = require("fs").promises;
 const debug = require("debug")("zombie::kube::client");
 function initClient(configPath, namespace, tmpDir) {
@@ -103,9 +105,9 @@ class KubeClient extends client_1.Client {
             const name = podDef.metadata.name;
             (0, utils_1.writeLocalJsonFile)(this.tmpDir, `${name}.json`, podDef);
             let logTable = new utils_1.CreateLogTable({
-                colWidths: [20, 100],
+                colWidths: [25, 100],
             });
-            logTable.pushTo([
+            const logs = [
                 [utils_1.decorators.cyan("Pod"), utils_1.decorators.green(name)],
                 [utils_1.decorators.cyan("Status"), utils_1.decorators.green("Launching")],
                 [
@@ -116,9 +118,16 @@ class KubeClient extends client_1.Client {
                     utils_1.decorators.cyan("Command"),
                     utils_1.decorators.white(podDef.spec.containers[0].command.join(" ")),
                 ],
-            ]);
-            logTable.print();
+            ];
+            if (dbSnapshot) {
+                logs.push([utils_1.decorators.cyan("DB Snapshot"), utils_1.decorators.green(dbSnapshot)]);
+            }
+            logTable.pushToPrint(logs);
             yield this.createResource(podDef, true);
+            if (podDef.metadata.labels["zombie-role"] !== types_1.ZombieRole.Temp) {
+                const serviceDef = (0, dynResourceDefinition_1.genServiceDef)(podDef);
+                yield this.createResource(serviceDef, true);
+            }
             yield this.waitTransferContainerReady(name);
             if (dbSnapshot) {
                 // we need to get the snapshot from a public access

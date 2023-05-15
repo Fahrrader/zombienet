@@ -17,6 +17,8 @@ const dns_1 = __importDefault(require("dns"));
 const fs_1 = __importDefault(require("fs"));
 const net_1 = require("net");
 const os_1 = __importDefault(require("os"));
+const stream_1 = require("stream");
+const promises_1 = require("stream/promises");
 const colors_1 = require("./colors");
 function getRandomPort() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -51,22 +53,10 @@ exports.getHostIp = getHostIp;
 function downloadFile(url, dest) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            yield new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
-                var _a;
-                const response = yield fetch(url);
-                const reader = (_a = response.body) === null || _a === void 0 ? void 0 : _a.getReader();
-                const writer = fs_1.default.createWriteStream(dest);
-                let i = true;
-                while (i) {
-                    const read = yield (reader === null || reader === void 0 ? void 0 : reader.read());
-                    if (read === null || read === void 0 ? void 0 : read.done) {
-                        writer.close();
-                        i = false;
-                        resolve();
-                    }
-                    writer.write(read === null || read === void 0 ? void 0 : read.value);
-                }
-            }));
+            const { body } = yield fetch(url);
+            const writable = fs_1.default.createWriteStream(dest);
+            const readable = stream_1.Readable.fromWeb(body);
+            yield (0, promises_1.finished)(readable.pipe(writable));
         }
         catch (err) {
             console.log(`\n ${colors_1.decorators.red("Unexpected error: ")} \t ${colors_1.decorators.bright(err)}\n`);

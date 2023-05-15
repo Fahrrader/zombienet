@@ -8,6 +8,7 @@ export declare function isValidHttpUrl(input: string): boolean;
 export declare function filterConsole(excludePatterns: string[], options?: any): () => void;
 export declare function convertExponentials(data: string): string;
 export declare function getLokiUrl(namespace: string, podName: string, from: number | string, to?: number | string): string;
+export declare const TimeoutAbortController: (time: number) => AbortController;
 export declare function getRandom(arr: string[], n: number): any[];
 export declare function getFilePathNameExt(filePath: string): {
     fullPath: string;

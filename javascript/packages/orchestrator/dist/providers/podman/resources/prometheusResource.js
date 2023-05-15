@@ -47,7 +47,7 @@ class PrometheusResource {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const templateConfigPath = path_1.default.resolve(__dirname, "./configs/prometheus.yml");
-                yield promises_1.default.writeFile(`${this.configPath}/prometheus.yml`, templateConfigPath);
+                yield promises_1.default.copyFile(templateConfigPath, `${this.configPath}/prometheus.yml`);
             }
             catch (_a) {
                 throw new Error("Error generating config for prometheus resource");

@@ -9,4 +9,5 @@ export declare const provider: {
     setupChainSpec: typeof setupChainSpec;
     getChainSpecRaw: typeof getChainSpecRaw;
     replaceNetworkRef: typeof replaceNetworkRef;
+    getCliArgsVersion: (image: string, command: string) => Promise<import("../../types").SubstrateCliArgsVersion>;
 };

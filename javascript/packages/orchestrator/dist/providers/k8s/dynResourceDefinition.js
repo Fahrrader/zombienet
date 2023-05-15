@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTempNodeDef = exports.replaceNetworkRef = exports.genNodeDef = exports.genBootnodeDef = void 0;
+exports.createTempNodeDef = exports.replaceNetworkRef = exports.genServiceDef = exports.genNodeDef = exports.genBootnodeDef = void 0;
 const utils_1 = require("@zombienet/utils");
 const configGenerator_1 = require("../../configGenerator");
 const constants_1 = require("../../constants");
@@ -29,6 +29,11 @@ function genNodeDef(namespace, nodeSetup) {
     });
 }
 exports.genNodeDef = genNodeDef;
+function genServiceDef(podSpec) {
+    const serviceResource = new resources_1.ServiceResource(podSpec);
+    return serviceResource.generateSpec();
+}
+exports.genServiceDef = genServiceDef;
 function replaceNetworkRef(podDef, network) {
     // replace command if needed in containers
     for (const container of podDef.spec.containers) {
@@ -42,14 +47,15 @@ function replaceNetworkRef(podDef, network) {
     }
 }
 exports.replaceNetworkRef = replaceNetworkRef;
-function createTempNodeDef(name, image, chain, fullCommand) {
+function createTempNodeDef(name, image, chain, fullCommand, useCommandSuffix = true) {
     return __awaiter(this, void 0, void 0, function* () {
         const nodeName = (0, configGenerator_1.getUniqueName)("temp");
         const node = {
             name: nodeName,
             key: (0, utils_1.getSha256)(nodeName),
             image,
-            fullCommand: fullCommand + " && " + constants_1.TMP_DONE + " && " + constants_1.WAIT_UNTIL_SCRIPT_SUFIX,
+            fullCommand: fullCommand +
+                (useCommandSuffix ? ` && ${constants_1.TMP_DONE} && ${constants_1.WAIT_UNTIL_SCRIPT_SUFIX}` : ""),
             chain,
             validator: false,
             invulnerable: false,

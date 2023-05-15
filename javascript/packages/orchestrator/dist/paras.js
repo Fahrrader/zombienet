@@ -61,13 +61,16 @@ function generateParachainFiles(namespace, tmpDir, parachainFilesPath, configBas
             chainSpec_1.default.addCollatorSelection,
             chainSpec_1.default.writeChainSpec,
         ]);
+        const GENESIS_STATE_FILENAME_WITH_ID = `${constants_1.GENESIS_STATE_FILENAME}-${parachain.id}`;
+        const GENESIS_WASM_FILENAME_WITH_ID = `${constants_1.GENESIS_WASM_FILENAME}-${parachain.id}`;
         const stateLocalFilePath = `${parachainFilesPath}/${constants_1.GENESIS_STATE_FILENAME}`;
         const wasmLocalFilePath = `${parachainFilesPath}/${constants_1.GENESIS_WASM_FILENAME}`;
         const client = (0, client_1.getClient)();
         const { setupChainSpec, getChainSpecRaw } = providers_1.Providers.get(client.providerName);
         let chainSpecFullPath;
-        const chainSpecFileName = `${parachain.chain ? parachain.chain + "-" : ""}${parachain.name}-${relayChainName}.json`;
-        const chainSpecFullPathPlain = `${tmpDir}/${parachain.chain ? parachain.chain + "-" : ""}${parachain.name}-${relayChainName}-plain.json`;
+        const chainName = `${parachain.chain ? parachain.chain + "-" : ""}${parachain.name}-${relayChainName}`;
+        const chainSpecFileName = `${chainName}.json`;
+        const chainSpecFullPathPlain = `${tmpDir}/${chainName}-plain.json`;
         if (parachain.cumulusBased) {
             // need to create the parachain spec
             // file name template is [para chain-]<para name>-<relay chain>
@@ -84,7 +87,7 @@ function generateParachainFiles(namespace, tmpDir, parachainFilesPath, configBas
                     chainSpecPath: parachain.chainSpecPath,
                     chainSpecCommand: `${parachain.collators[0].command} build-spec ${parachain.chain ? "--chain " + parachain.chain : ""} --disable-default-bootnode`,
                     defaultImage: parachain.collators[0].image,
-                }, relayChainName, chainSpecFullPathPlain);
+                }, chainName, chainSpecFullPathPlain);
             }
             chainSpecFullPath = `${tmpDir}/${chainSpecFileName}`;
             if (!(yield (0, chainSpec_1.isRawSpec)(chainSpecFullPathPlain))) {
@@ -100,6 +103,9 @@ function generateParachainFiles(namespace, tmpDir, parachainFilesPath, configBas
                 if ((_b = (_a = plainData.genesis.runtime) === null || _a === void 0 ? void 0 : _a.parachainInfo) === null || _b === void 0 ? void 0 : _b.parachainId)
                     plainData.genesis.runtime.parachainInfo.parachainId = parachain.id;
                 writeChainSpec(chainSpecFullPathPlain, plainData);
+                // make genesis overrides first.
+                if (parachain.genesis)
+                    yield changeGenesisConfig(chainSpecFullPathPlain, parachain.genesis);
                 // clear auths
                 yield clearAuthorities(chainSpecFullPathPlain);
                 // Chain spec customization logic
@@ -120,8 +126,6 @@ function generateParachainFiles(namespace, tmpDir, parachainFilesPath, configBas
                         yield addParaCustom(chainSpecFullPathPlain, node);
                     }
                 }
-                if (parachain.genesis)
-                    yield changeGenesisConfig(chainSpecFullPathPlain, parachain.genesis);
                 // modify the plain chain spec with any custom commands
                 for (const cmd of parachain.chainSpecModifierCommands) {
                     yield (0, chainSpec_1.runCommandWithChainSpec)(chainSpecFullPathPlain, cmd, configBasePath);
@@ -182,7 +186,7 @@ function generateParachainFiles(namespace, tmpDir, parachainFilesPath, configBas
                         : `${client.remoteDir}/${chainSpecFileName}`;
                     genesisStateGenerator = genesisStateGenerator.replace(" > ", ` --chain ${chainSpecPathInNode} > `);
                 }
-                commands.push(genesisStateGenerator);
+                commands.push(`${genesisStateGenerator}-${parachain.id}`);
             }
             if (parachain.genesisWasmGenerator) {
                 let genesisWasmGenerator = parachain.genesisWasmGenerator.replace("{{CLIENT_REMOTE_DIR}}", client.remoteDir);
@@ -193,7 +197,7 @@ function generateParachainFiles(namespace, tmpDir, parachainFilesPath, configBas
                         : `${client.remoteDir}/${chainSpecFileName}`;
                     genesisWasmGenerator = genesisWasmGenerator.replace(" > ", ` --chain ${chainSpecPathInNode} > `);
                 }
-                commands.push(genesisWasmGenerator);
+                commands.push(`${genesisWasmGenerator}-${parachain.id}`);
             }
             // Native provider doesn't need to wait
             if (client.providerName == "kubernetes")
@@ -223,10 +227,10 @@ function generateParachainFiles(namespace, tmpDir, parachainFilesPath, configBas
             const podName = podDef.metadata.name;
             yield client.spawnFromDef(podDef, filesToCopyToNodes);
             if (parachain.genesisStateGenerator) {
-                yield client.copyFileFromPod(podDef.metadata.name, `${client.remoteDir}/${constants_1.GENESIS_STATE_FILENAME}`, stateLocalFilePath);
+                yield client.copyFileFromPod(podDef.metadata.name, `${client.remoteDir}/${GENESIS_STATE_FILENAME_WITH_ID}`, stateLocalFilePath);
             }
             if (parachain.genesisWasmGenerator) {
-                yield client.copyFileFromPod(podDef.metadata.name, `${client.remoteDir}/${constants_1.GENESIS_WASM_FILENAME}`, wasmLocalFilePath);
+                yield client.copyFileFromPod(podDef.metadata.name, `${client.remoteDir}/${GENESIS_WASM_FILENAME_WITH_ID}`, wasmLocalFilePath);
             }
             yield client.putLocalMagicFile(podName, podName);
         }

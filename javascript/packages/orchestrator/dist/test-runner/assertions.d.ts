@@ -9,7 +9,7 @@ declare const _default: {
     LogMatch: ({ node_name, pattern, match_type, timeout }: FnArgs) => (network: Network) => Promise<void>;
     CountLogMatch: ({ node_name, pattern, match_type, op, target_value, timeout, }: FnArgs) => (network: Network) => Promise<void>;
     SystemEvent: ({ node_name, pattern, match_type, timeout }: FnArgs) => (network: Network) => Promise<void>;
-    CustomJs: ({ node_name, file_path, custom_args, op, target_value, timeout, }: FnArgs) => (network: Network, _backchannelMap: BackchannelMap, configBasePath: string) => Promise<void>;
+    CustomJs: ({ node_name, file_path, custom_args, op, target_value, timeout, is_ts, }: FnArgs) => (network: Network, _backchannelMap: BackchannelMap, configBasePath: string) => Promise<void>;
     CustomSh: ({ node_name, file_path, custom_args, op, target_value, timeout, }: FnArgs) => (network: Network, _backchannelMap: BackchannelMap, configBasePath: string) => Promise<void>;
     ParaBlockHeight: ({ node_name, para_id, target_value, op, timeout, }: FnArgs) => (network: Network) => Promise<void>;
     ParaIsRegistered: ({ node_name, para_id, timeout }: FnArgs) => (network: Network) => Promise<void>;

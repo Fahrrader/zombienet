@@ -18,14 +18,13 @@ class BootNodeResource extends nodeResource_1.NodeResource {
                     "app.kubernetes.io/instance": "bootnode",
                     "zombie-role": types_1.ZombieRole.BootNode,
                     app: "zombienet",
-                    "zombie-ns": this.namespace,
                 },
             },
             spec: {
                 hostname: "bootnode",
                 containers,
                 initContainers,
-                restartPolicy: "Never",
+                restartPolicy: "Always",
                 volumes,
                 securityContext: {
                     fsGroup: 1000,

@@ -14,7 +14,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Network = exports.rebuildNetwork = exports.Scope = void 0;
 const utils_1 = require("@zombienet/utils");
-const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const chainSpec_1 = require("./chainSpec");
 const constants_1 = require("./constants");
@@ -147,13 +146,15 @@ class Network {
                 while (!done) {
                     if (expired)
                         throw new Error(`Timeout(${timeout}s)`);
-                    const response = yield axios_1.default.get(`${this.backchannelUri}/${key}`, {
-                        timeout: 2000,
-                        validateStatus: function (status) {
-                            debug(`status: ${status}`);
-                            return status === 404 || (status >= 200 && status < 300); // allow 404 as valid
-                        },
+                    const fetchResult = yield fetch(`${this.backchannelUri}/${key}`, {
+                        signal: (0, utils_1.TimeoutAbortController)(2).signal,
                     });
+                    const response = yield fetchResult.json();
+                    const { status } = response;
+                    debug(`status: ${status}`);
+                    if (status === 404 || (status >= 200 && status < 300)) {
+                        return status === 404 || (status >= 200 && status < 300);
+                    }
                     if (response.status === 200) {
                         done = true;
                         value = response.data;
@@ -286,7 +287,7 @@ class Network {
         ]);
     }
     replaceWithNetworInfo(placeholder) {
-        return placeholder.replace(/{{ZOMBIE:(.*?):(.*?)}}/gi, (_substring, nodeName, key) => {
+        return placeholder.replace(constants_1.TOKEN_PLACEHOLDER, (_substring, nodeName, key) => {
             const node = this.getNodeByName(nodeName);
             return node[key];
         });

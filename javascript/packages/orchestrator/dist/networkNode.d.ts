@@ -11,6 +11,7 @@ export declare class NetworkNode implements NetworkNodeInterface {
     name: string;
     wsUri: string;
     prometheusUri: string;
+    prometheusPrefix: string;
     multiAddress: string;
     apiInstance?: ApiPromise;
     spec?: object | undefined;
@@ -18,10 +19,8 @@ export declare class NetworkNode implements NetworkNodeInterface {
     userDefinedTypes: any;
     para?: PARA;
     parachainId?: number;
-    lastLogLineCheckedTimestamp?: string;
-    lastLogLineCheckedIndex?: number;
     group?: string;
-    constructor(name: string, wsUri: string, prometheusUri: string, multiAddress: string, userDefinedTypes?: any);
+    constructor(name: string, wsUri: string, prometheusUri: string, multiAddress: string, userDefinedTypes?: any, prometheusPrefix?: string);
     connectApi(): Promise<void>;
     restart(timeout?: number | null): Promise<boolean>;
     pause(): Promise<boolean>;
@@ -36,7 +35,7 @@ export declare class NetworkNode implements NetworkNodeInterface {
     findPattern(pattern: string, isGlob: boolean, timeout?: number): Promise<boolean>;
     run(scriptPath: string, args: string[], timeout?: number): Promise<void>;
     getSpansByTraceId(traceId: string, collatorUrl: string): Promise<string[]>;
-    _dedupLogs(logs: string[], useIndex?: boolean): string[];
+    _dedupLogs(logs: string[], useIndex: boolean | undefined, lastLogLineCheckedTimestamp: string, lastLogLineCheckedIndex: number): string[];
     _getMetric(metricName: string, metricShouldExists?: boolean): number | undefined;
     _getSamplesCount(buckets: BucketHash, bucketKeys: string[]): number;
 }

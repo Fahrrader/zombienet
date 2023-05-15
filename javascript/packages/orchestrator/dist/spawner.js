@@ -73,15 +73,17 @@ const spawnNode = (client, node, network, bootnodes, filesToCopy, opts, parachai
     let networkNode;
     const endpointPort = constants_1.RPC_WS_PORT;
     if (opts.inCI) {
-        const nodeIp = yield client.getNodeIP(podDef.metadata.name);
-        networkNode = new networkNode_1.NetworkNode(node.name, constants_1.WS_URI_PATTERN.replace("{{IP}}", nodeIp).replace("{{PORT}}", endpointPort.toString()), constants_1.METRICS_URI_PATTERN.replace("{{IP}}", nodeIp).replace("{{PORT}}", constants_1.PROMETHEUS_PORT.toString()), nodeMultiAddress, opts.userDefinedTypes);
+        // in CI we deploy a service (with the pod name) in front of each pod
+        // so here we can use the name (as short dns in the ns) to connect to pod.
+        const nodeDns = `${podDef.metadata.name}.${namespace}.svc.cluster.local`;
+        networkNode = new networkNode_1.NetworkNode(node.name, constants_1.WS_URI_PATTERN.replace("{{IP}}", nodeDns).replace("{{PORT}}", endpointPort.toString()), constants_1.METRICS_URI_PATTERN.replace("{{IP}}", nodeDns).replace("{{PORT}}", constants_1.PROMETHEUS_PORT.toString()), nodeMultiAddress, opts.userDefinedTypes, node.prometheusPrefix);
     }
     else {
-        const nodeIdentifier = `${podDef.kind}/${podDef.metadata.name}`;
+        const nodeIdentifier = `service/${podDef.metadata.name}`;
         const fwdPort = yield client.startPortForwarding(endpointPort, nodeIdentifier);
         const nodePrometheusPort = yield client.startPortForwarding(constants_1.PROMETHEUS_PORT, nodeIdentifier);
         const listeningIp = opts.local_ip || constants_1.LOCALHOST;
-        networkNode = new networkNode_1.NetworkNode(node.name, constants_1.WS_URI_PATTERN.replace("{{IP}}", listeningIp).replace("{{PORT}}", fwdPort.toString()), constants_1.METRICS_URI_PATTERN.replace("{{IP}}", listeningIp).replace("{{PORT}}", nodePrometheusPort.toString()), nodeMultiAddress, opts.userDefinedTypes);
+        networkNode = new networkNode_1.NetworkNode(node.name, constants_1.WS_URI_PATTERN.replace("{{IP}}", listeningIp).replace("{{PORT}}", fwdPort.toString()), constants_1.METRICS_URI_PATTERN.replace("{{IP}}", listeningIp).replace("{{PORT}}", nodePrometheusPort.toString()), nodeMultiAddress, opts.userDefinedTypes, node.prometheusPrefix);
     }
     networkNode.group = node.group;
     if (parachain) {

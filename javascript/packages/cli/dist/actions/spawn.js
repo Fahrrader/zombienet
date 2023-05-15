@@ -29,7 +29,7 @@ const constants_1 = require("../constants");
  *
  * @returns Network
  */
-function spawn(configFile, credsFile, cmdOpts, program) {
+function spawn(configFile, credsFile, cmdOpts, program, setGlobalNetwork) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         const opts = Object.assign(Object.assign({}, program.parent.opts()), cmdOpts);
@@ -81,10 +81,13 @@ function spawn(configFile, credsFile, cmdOpts, program) {
             force,
             inCI,
             silent: false,
+            setGlobalNetwork,
         };
         const network = yield (0, orchestrator_1.start)(creds, config, options);
         network.showNetworkInfo((_c = config.settings) === null || _c === void 0 ? void 0 : _c.provider);
-        return network;
+        // keep the process running
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        setInterval(() => { }, 1000);
     });
 }
 exports.spawn = spawn;

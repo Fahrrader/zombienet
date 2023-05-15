@@ -20,6 +20,9 @@ const debug = require("debug")("zombie-cli");
 const program = new commander_1.Command("zombienet");
 let network;
 let alreadyTryToStop = false;
+const setGlobalNetwork = (globalNetwork) => {
+    network = globalNetwork;
+};
 function handleTermination(userInterrupted = false) {
     return __awaiter(this, void 0, void 0, function* () {
         process.env.terminating = "1";
@@ -29,6 +32,7 @@ function handleTermination(userInterrupted = false) {
                 console.log("Ctrl+c detected...");
             debug("removing namespace: " + network.namespace);
             yield network.dumpLogs();
+            console.log(utils_1.decorators.blue("Tearing down network..."));
             yield network.stop();
         }
     });
@@ -117,7 +121,7 @@ function asyncAction(cmd) {
         (() => __awaiter(this, void 0, void 0, function* () {
             try {
                 if (cmd.name == "spawn") {
-                    network = yield cmd(...args);
+                    yield cmd(...args, setGlobalNetwork);
                 }
                 else {
                     yield cmd(...args);

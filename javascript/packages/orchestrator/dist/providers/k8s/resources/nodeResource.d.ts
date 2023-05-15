@@ -13,5 +13,6 @@ export declare class NodeResource {
     private shouldAddJaegerContainer;
     private generateJaegerContainer;
     private generateContainers;
+    private computeZombieRoleLabel;
     protected generatePodSpec(initContainers: Container[], containers: Container[], volumes: Volume[]): PodSpec;
 }

@@ -64,6 +64,7 @@ class PodmanClient extends client_1.Client {
         this.localMagicFilepath = `${tmpDir}/finished.txt`;
         this.remoteDir = constants_1.DEFAULT_REMOTE_DIR;
         this.dataDir = constants_1.DEFAULT_DATA_DIR;
+        this.isTearingDown = false;
     }
     validateAccess() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -151,6 +152,7 @@ class PodmanClient extends client_1.Client {
     }
     destroyNamespace() {
         return __awaiter(this, void 0, void 0, function* () {
+            this.isTearingDown = true;
             // get pod names
             let args = [
                 "pod",
@@ -162,10 +164,10 @@ class PodmanClient extends client_1.Client {
             ];
             let result = yield this.runCommand(args, { scoped: false });
             // now remove the pods
-            args = ["pod", "rm", "-f", ...result.stdout.split("\n")];
+            args = ["pod", "rm", "-f", "-i", ...result.stdout.split("\n")];
             result = yield this.runCommand(args, { scoped: false });
             // now remove the pnetwork
-            args = ["network", "rm", this.namespace];
+            args = ["network", "rm", "-f", this.namespace];
             result = yield this.runCommand(args, { scoped: false });
         });
     }
@@ -259,8 +261,12 @@ class PodmanClient extends client_1.Client {
                 };
             }
             catch (error) {
-                console.log(`\n ${utils_1.decorators.red("Error: ")} \t ${utils_1.decorators.bright(error)}\n`);
-                throw error;
+                // We prevent previous commands ran to throw error when we are tearing down the network.
+                if (!this.isTearingDown) {
+                    console.log(`\n ${utils_1.decorators.red("Error: ")} \t ${utils_1.decorators.bright(error)}\n`);
+                    throw error;
+                }
+                return { exitCode: 0, stdout: "" };
             }
         });
     }
@@ -302,16 +308,20 @@ class PodmanClient extends client_1.Client {
         return __awaiter(this, void 0, void 0, function* () {
             const name = podDef.metadata.name;
             let logTable = new utils_1.CreateLogTable({
-                colWidths: [20, 100],
+                colWidths: [25, 100],
             });
-            logTable.pushToPrint([
+            const logs = [
                 [utils_1.decorators.cyan("Pod"), utils_1.decorators.green(podDef.metadata.name)],
                 [utils_1.decorators.cyan("Status"), utils_1.decorators.green("Launching")],
                 [
                     utils_1.decorators.cyan("Command"),
                     utils_1.decorators.white(podDef.spec.containers[0].command.join(" ")),
                 ],
-            ]);
+            ];
+            if (dbSnapshot) {
+                logs.push([utils_1.decorators.cyan("DB Snapshot"), utils_1.decorators.green(dbSnapshot)]);
+            }
+            logTable.pushToPrint(logs);
             // initialize keystore
             const dataPath = podDef.spec.volumes.find((vol) => vol.name === "tmp-data");
             debug("dataPath", dataPath);
@@ -325,7 +335,7 @@ class PodmanClient extends client_1.Client {
                     `cd ${dataPath.hostPath.path}/..  && tar -xzvf data/db.tgz`,
                 ]);
             }
-            if (keystore) {
+            if (keystore && chainSpecId) {
                 const keystoreRemoteDir = `${dataPath.hostPath.path}/chains/${chainSpecId}/keystore`;
                 yield (0, utils_1.makeDir)(keystoreRemoteDir, true);
                 const keystoreIsEmpty = (yield fs.readdir(keystoreRemoteDir).length) === 0;
@@ -408,19 +418,31 @@ class PodmanClient extends client_1.Client {
         });
     }
     getPauseArgs(name) {
-        return ["exec", name, "--", "bash", "-c", "echo pause > /tmp/zombiepipe"];
+        return [
+            "exec",
+            `${name}_pod-${name}`,
+            "bash",
+            "-c",
+            "echo pause > /tmp/zombiepipe",
+        ];
     }
     getResumeArgs(name) {
-        return ["exec", name, "--", "bash", "-c", "echo resume > /tmp/zombiepipe"];
+        return [
+            "exec",
+            `${name}_pod-${name}`,
+            "bash",
+            "-c",
+            "echo resume > /tmp/zombiepipe",
+        ];
     }
     restartNode(name, timeout) {
         return __awaiter(this, void 0, void 0, function* () {
-            const args = ["exec", name, "--", "bash", "-c"];
+            const args = ["exec", `${name}_pod-${name}`, "bash", "-c"];
             const cmd = timeout
                 ? `echo restart ${timeout} > /tmp/zombiepipe`
                 : `echo restart > /tmp/zombiepipe`;
             args.push(cmd);
-            const result = yield this.runCommand(args, { scoped: true });
+            const result = yield this.runCommand(args, { scoped: false });
             return result.exitCode === 0;
         });
     }

@@ -38,9 +38,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const api_1 = require("@polkadot/api");
 const utils_1 = require("@zombienet/utils");
 const chai_1 = require("chai");
+const execa_1 = __importDefault(require("execa"));
+const promises_1 = __importDefault(require("fs/promises"));
 const jsdom_1 = require("jsdom");
 const minimatch_1 = require("minimatch");
 const path_1 = __importDefault(require("path"));
+const typescript_1 = __importDefault(require("typescript"));
 const jsapi_helpers_1 = require("../jsapi-helpers");
 const utilCrypto = require("@polkadot/util-crypto");
 const DEFAULT_INDIVIDUAL_TEST_TIMEOUT = 10; // seconds
@@ -129,7 +132,7 @@ const SystemEvent = ({ node_name, pattern, match_type, timeout }) => {
     });
 };
 // Customs
-const CustomJs = ({ node_name, file_path, custom_args, op, target_value, timeout, }) => {
+const CustomJs = ({ node_name, file_path, custom_args, op, target_value, timeout, is_ts, }) => {
     timeout = timeout || DEFAULT_INDIVIDUAL_TEST_TIMEOUT;
     const comparatorFn = comparators[op];
     return (network, _backchannelMap, configBasePath) => __awaiter(void 0, void 0, void 0, function* () {
@@ -162,7 +165,15 @@ const CustomJs = ({ node_name, file_path, custom_args, op, target_value, timeout
                 ? []
                 : custom_args.split(",")
             : [];
-        const resolvedJsFilePath = path_1.default.resolve(configBasePath, file_path);
+        let resolvedJsFilePath = path_1.default.resolve(configBasePath, file_path);
+        if (is_ts) {
+            const source = (yield promises_1.default.readFile(resolvedJsFilePath)).toString();
+            const result = typescript_1.default.transpileModule(source, {
+                compilerOptions: { module: typescript_1.default.ModuleKind.CommonJS },
+            });
+            resolvedJsFilePath = path_1.default.resolve(configBasePath, path_1.default.parse(file_path).name + ".js");
+            yield promises_1.default.writeFile(resolvedJsFilePath, result.outputText);
+        }
         // shim with jsdom
         const dom = new jsdom_1.JSDOM("<!doctype html><html><head><meta charset='utf-8'></head><body></body></html>");
         global.window = dom.window;
@@ -194,6 +205,9 @@ const CustomJs = ({ node_name, file_path, custom_args, op, target_value, timeout
             throw new Error(err);
         }
         // remove shim
+        if (is_ts) {
+            yield execa_1.default.command(`rm -rf  ${resolvedJsFilePath}`);
+        }
         global.window = undefined;
         global.document = undefined;
         global.zombie = undefined;
