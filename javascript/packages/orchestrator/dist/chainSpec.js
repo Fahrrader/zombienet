@@ -149,6 +149,7 @@ function getNodeKey(node, useStash = true) {
                 para_assignment: sr_account.address,
                 beefy: (0, util_crypto_1.encodeAddress)(ec_account.publicKey),
                 aura: sr_account.address,
+                nimbus: sr_account.address,
             },
         ];
         return key;

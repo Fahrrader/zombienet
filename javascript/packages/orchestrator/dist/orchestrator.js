@@ -311,6 +311,8 @@ function start(credentials, launchConfig, options) {
             network.launched = true;
             clearTimeout(timeoutTimer);
             debug(`\t 🚀 LAUNCH COMPLETE under namespace ${utils_1.decorators.green(namespace)} 🚀`);
+            // clean cache before dump the info.
+            network.cleanMetricsCache();
             yield fs_1.default.promises.writeFile(`${tmpDir.path}/zombie.json`, JSON.stringify(network));
             return network;
         }

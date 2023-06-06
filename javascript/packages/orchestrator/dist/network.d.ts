@@ -53,4 +53,5 @@ export declare class Network {
     showNetworkInfo(provider: string): void;
     showNodeInfo(node: NetworkNode, provider: string, logTable: CreateLogTable): void;
     replaceWithNetworInfo(placeholder: string): string;
+    cleanMetricsCache(): void;
 }

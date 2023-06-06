@@ -11,6 +11,7 @@ declare const _default: {
     SystemEvent: ({ node_name, pattern, match_type, timeout }: FnArgs) => (network: Network) => Promise<void>;
     CustomJs: ({ node_name, file_path, custom_args, op, target_value, timeout, is_ts, }: FnArgs) => (network: Network, _backchannelMap: BackchannelMap, configBasePath: string) => Promise<void>;
     CustomSh: ({ node_name, file_path, custom_args, op, target_value, timeout, }: FnArgs) => (network: Network, _backchannelMap: BackchannelMap, configBasePath: string) => Promise<void>;
+    CalcMetrics: ({ node_name, metric_name_a, math_ops, metric_name_b, target_value, op, timeout, }: FnArgs) => (network: Network) => Promise<void>;
     ParaBlockHeight: ({ node_name, para_id, target_value, op, timeout, }: FnArgs) => (network: Network) => Promise<void>;
     ParaIsRegistered: ({ node_name, para_id, timeout }: FnArgs) => (network: Network) => Promise<void>;
     ParaRuntimeUpgrade: ({ node_name, para_id, file_or_uri, timeout, }: FnArgs) => (network: Network, _backchannelMap: BackchannelMap, configBasePath: string) => Promise<void>;

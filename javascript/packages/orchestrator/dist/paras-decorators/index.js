@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PARA = exports.decorate = exports.whichPara = void 0;
+exports.whichPara = exports.decorate = exports.PARA = void 0;
 var PARA;
 (function (PARA) {
     PARA["Statemint"] = "statemint";

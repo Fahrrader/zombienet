@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findPatternInSystemEventSubscription = exports.paraIsRegistered = exports.paraGetBlockHeight = exports.validateRuntimeCode = exports.chainCustomSectionUpgrade = exports.chainUpgradeFromUrl = exports.chainUpgradeFromLocalFile = exports.registerParachain = exports.connect = void 0;
+exports.validateRuntimeCode = exports.registerParachain = exports.paraIsRegistered = exports.paraGetBlockHeight = exports.findPatternInSystemEventSubscription = exports.connect = exports.chainUpgradeFromUrl = exports.chainUpgradeFromLocalFile = exports.chainCustomSectionUpgrade = void 0;
 const api_1 = require("@polkadot/api");
 const keyring_1 = require("@polkadot/keyring");
 const util_crypto_1 = require("@polkadot/util-crypto");

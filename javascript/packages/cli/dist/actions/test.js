@@ -43,7 +43,7 @@ function test(testFile, runningNetworkSpec, cmdOpts, program) {
         // use `k8s` as default
         const providerToUse = opts.provider && constants_1.AVAILABLE_PROVIDERS.includes(opts.provider)
             ? opts.provider
-            : "kubernetes";
+            : constants_1.DEFAULT_PROVIDER;
         const configBasePath = path_1.default.dirname(testFile);
         const env = new nunjucks_1.Environment(new utils_1.RelativeLoader([configBasePath]));
         const templateContent = fs_1.default.readFileSync(testFile).toString();

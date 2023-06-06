@@ -292,5 +292,10 @@ class Network {
             return node[key];
         });
     }
+    cleanMetricsCache() {
+        for (const node of Object.values(this.nodesByName)) {
+            node.cleanMetricsCache();
+        }
+    }
 }
 exports.Network = Network;

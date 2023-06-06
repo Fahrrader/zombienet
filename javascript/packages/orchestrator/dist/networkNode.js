@@ -177,7 +177,7 @@ class NetworkNode {
                 const getValue = () => __awaiter(this, void 0, void 0, function* () {
                     let c = 0;
                     let done = false;
-                    while (!done) {
+                    while (!done && !timedout) {
                         c++;
                         yield new Promise((resolve) => setTimeout(resolve, 1000));
                         debug(`fetching metrics - q: ${c}  time:  ${new Date()}`);
@@ -209,6 +209,54 @@ class NetworkNode {
                         throw resp;
                 }
                 return value || 0;
+            }
+            catch (err) {
+                console.log(`\n\t ${utils_1.decorators.red("Error: ")} \n\t\t ${utils_1.decorators.bright(err === null || err === void 0 ? void 0 : err.message)}\n`);
+                return value;
+            }
+        });
+    }
+    getCalcMetric(rawMetricNameA, rawMetricNameB, mathOp, comparator, desiredMetricValue, timeout = constants_1.DEFAULT_INDIVIDUAL_TEST_TIMEOUT) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let value;
+            let timedOut = false;
+            try {
+                const mathFn = (a, b) => {
+                    return mathOp === "Minus" ? a - b : a + b;
+                };
+                const getValue = () => __awaiter(this, void 0, void 0, function* () {
+                    while (!timedOut) {
+                        const [valueA, valueB] = yield Promise.all([
+                            this.getMetric(rawMetricNameA),
+                            this.getMetric(rawMetricNameB),
+                        ]);
+                        value = mathFn(valueA, valueB);
+                        if (value !== undefined &&
+                            compare(comparator, value, desiredMetricValue)) {
+                            break;
+                        }
+                        else {
+                            debug(`current values for: [${rawMetricNameA}, ${rawMetricNameB}] are [${valueA}, ${valueB}], keep trying...`);
+                            yield new Promise((resolve) => setTimeout(resolve, 1000));
+                        }
+                    }
+                });
+                const resp = yield Promise.race([
+                    getValue(),
+                    new Promise((resolve) => setTimeout(() => {
+                        timedOut = true;
+                        const err = new Error(`Timeout(${timeout}), "getting desired calc metric value ${desiredMetricValue} within ${timeout} secs".`);
+                        return resolve(err);
+                    }, timeout * 1000)),
+                ]);
+                if (resp instanceof Error) {
+                    // use `undefined` metrics values in `equal` comparations as `0`
+                    if (timedOut && comparator === "equal" && desiredMetricValue === 0)
+                        value = 0;
+                    else
+                        throw resp;
+                }
+                return value;
             }
             catch (err) {
                 console.log(`\n\t ${utils_1.decorators.red("Error: ")} \n\t\t ${utils_1.decorators.bright(err === null || err === void 0 ? void 0 : err.message)}\n`);
@@ -399,6 +447,9 @@ class NetworkNode {
             }
             return spanNames;
         });
+    }
+    cleanMetricsCache() {
+        this.cachedMetrics = undefined;
     }
     // prevent to search in the same log line twice.
     _dedupLogs(logs, useIndex = false, lastLogLineCheckedTimestamp, lastLogLineCheckedIndex) {

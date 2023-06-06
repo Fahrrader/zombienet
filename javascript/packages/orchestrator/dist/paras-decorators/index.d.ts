@@ -13,4 +13,4 @@ declare enum PARA {
 }
 declare function whichPara(chain: string): PARA;
 declare function decorate(para: PARA, fns: Function[]): Function[];
-export { whichPara, decorate, PARA };
+export { PARA, decorate, whichPara };

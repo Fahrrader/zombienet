@@ -127,7 +127,7 @@ function generateNetworkSpec(config) {
         networkSpec.settings = Object.assign({ timeout: constants_1.DEFAULT_GLOBAL_TIMEOUT, enable_tracing: true }, (config.settings ? config.settings : {}));
         // default provider
         if (!networkSpec.settings.provider)
-            networkSpec.settings.provider = "kubernetes";
+            networkSpec.settings.provider = constants_1.DEFAULT_PROVIDER;
         // if we don't have a path to the chain-spec leave undefined to create
         if (config.relaychain.chain_spec_path) {
             const chainSpecPath = (0, path_1.resolve)(process.cwd(), config.relaychain.chain_spec_path);

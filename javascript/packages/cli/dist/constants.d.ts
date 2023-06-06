@@ -1,5 +1,5 @@
 declare const AVAILABLE_PROVIDERS: string[];
 declare const DEFAULT_BALANCE = 2000000000000;
 declare const DEFAULT_GLOBAL_TIMEOUT = 1200;
-declare const DEFAULT_PROVIDER = "kubernetes";
+declare const DEFAULT_PROVIDER = "native";
 export { AVAILABLE_PROVIDERS, DEFAULT_BALANCE, DEFAULT_GLOBAL_TIMEOUT, DEFAULT_PROVIDER, };
