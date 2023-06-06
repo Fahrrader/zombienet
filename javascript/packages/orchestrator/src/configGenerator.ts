@@ -22,6 +22,7 @@ import {
   DEFAULT_MAX_NOMINATIONS,
   DEFAULT_PORTS,
   DEFAULT_PROMETHEUS_PREFIX,
+  DEFAULT_PROVIDER,
   DEFAULT_WASM_GENERATE_SUBCOMMAND,
   GENESIS_STATE_FILENAME,
   GENESIS_WASM_FILENAME,
@@ -157,7 +158,7 @@ export async function generateNetworkSpec(
 
   // default provider
   if (!networkSpec.settings.provider)
-    networkSpec.settings.provider = "kubernetes";
+    networkSpec.settings.provider = DEFAULT_PROVIDER;
 
   // if we don't have a path to the chain-spec leave undefined to create
   if (config.relaychain.chain_spec_path) {

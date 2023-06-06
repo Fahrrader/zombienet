@@ -80,7 +80,7 @@ const TRACING_COLLATOR_PORT = 3100;
 
 const ZOMBIE_WRAPPER = "zombie-wrapper.sh";
 
-const DEFAULT_PROVIDER = "kubernetes";
+const DEFAULT_PROVIDER = "native";
 const DEV_ACCOUNTS = [
   "alice",
   "bob",

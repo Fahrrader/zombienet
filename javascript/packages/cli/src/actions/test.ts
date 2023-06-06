@@ -5,7 +5,7 @@ import { decorators, RelativeLoader } from "@zombienet/utils";
 import fs from "fs";
 import { Environment } from "nunjucks";
 import path from "path";
-import { AVAILABLE_PROVIDERS } from "../constants";
+import { AVAILABLE_PROVIDERS, DEFAULT_PROVIDER } from "../constants";
 
 /**
  * Test - performs test/assertions against the spawned network, using a set of natural
@@ -42,7 +42,7 @@ export async function test(
   const providerToUse =
     opts.provider && AVAILABLE_PROVIDERS.includes(opts.provider)
       ? opts.provider
-      : "kubernetes";
+      : DEFAULT_PROVIDER;
 
   const configBasePath = path.dirname(testFile);
   const env = new Environment(new RelativeLoader([configBasePath]));
